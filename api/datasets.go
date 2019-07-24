@@ -270,7 +270,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 // otherwise, resolve the peername and proceed as normal
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Path:   HTTPPathToQriPath(r.URL.Path),
+		Paths:   []string{HTTPPathToQriPath(r.URL.Path)},
 		UseFSI: r.FormValue("fsi") == "true",
 		Filter: r.FormValue("filter"),
 	}
@@ -560,12 +560,13 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 	}
 
 	p := &lib.GetParams{
-		Path:     path,
+		Paths: []string{path},
 		Format:   format,
 		UseFSI:   r.FormValue("fsi") == "true",
 		Limit:    listParams.Limit,
 		Offset:   listParams.Offset,
 		All:      r.FormValue("all") == "true" && !readOnly,
+		// Format:   format,
 		Filter: ".body",
 	}
 
