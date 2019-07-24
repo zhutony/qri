@@ -133,15 +133,15 @@ func (r *DatasetRequests) loadDiffData(ctx context.Context, path, selector strin
 	if repo.IsRefString(path) {
 		getp := &GetParams{
 			Path:     path,
-			Format:   "json",
-			Selector: selector,
+			Filter: filter,
 			All:      true,
 		}
 		res := &GetResult{}
 		if err = r.Get(getp, res); err != nil {
 			return
 		}
-		err = json.Unmarshal(res.Bytes, &data)
+		data = res.Result
+		// err = json.Unmarshal(res.Bytes, &data)
 		return
 	}
 	file, err := r.node.Repo.Filesystem().Get(ctx, path)

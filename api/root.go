@@ -8,8 +8,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // RootHandler bundles handlers that may need to be called
@@ -54,6 +52,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
 		Path:   ref.String(),
 		UseFSI: r.FormValue("fsi") == "true",
+		Filter: r.FormValue("filter"),
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
@@ -70,22 +69,22 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if res.Dataset == nil || res.Dataset.IsEmpty() {
+	if res.Source == nil || res.Source.IsEmpty() {
 		util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
 		return
 	}
 
-	// TODO (b5) - why is this necessary?
-	ref = repo.DatasetRef{
-		Peername:  res.Dataset.Peername,
-		ProfileID: profile.ID(res.Dataset.ProfileID),
-		Name:      res.Dataset.Name,
-		Path:      res.Dataset.Path,
-		FSIPath:   res.Ref.FSIPath,
-		Published: res.Ref.Published,
-		Dataset:   res.Dataset,
-	}
+	// TODO (b5) - either restore or remove
+	// ref = repo.DatasetRef{
+	// 	Peername:  res.Dataset.Peername,
+	// 	ProfileID: profile.ID(res.Dataset.ProfileID),
+	// 	Name:      res.Dataset.Name,
+	// 	Path:      res.Dataset.Path,
+	// 	FSIPath:   res.Ref.FSIPath,
+	// 	Published: res.Ref.Published,
+	// 	Dataset:   res.Dataset,
+	// }
 
-	util.WriteResponse(w, ref)
+	util.WriteResponse(w, res.Result)
 	return
 }

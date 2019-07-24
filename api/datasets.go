@@ -272,6 +272,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
 		Path:   HTTPPathToQriPath(r.URL.Path),
 		UseFSI: r.FormValue("fsi") == "true",
+		Filter: r.FormValue("filter"),
 	}
 	res := lib.GetResult{}
 	err := h.Get(&p, &res)
@@ -284,17 +285,15 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO (b5) - remove this. res.Ref should be used instead
-	ref := repo.DatasetRef{
-		Peername:  res.Dataset.Peername,
-		ProfileID: profile.ID(res.Dataset.ProfileID),
-		Name:      res.Dataset.Name,
-		Path:      res.Dataset.Path,
-		FSIPath:   res.Ref.FSIPath,
-		Published: res.Ref.Published,
-		Dataset:   res.Dataset,
-	}
-	util.WriteResponse(w, ref)
+	// TODO (b5) - result will need to populate with resolved dataset data
+	// ref := repo.DatasetRef{
+	// 	Peername:  res.Dataset.Peername,
+	// 	ProfileID: profile.ID(res.Dataset.ProfileID),
+	// 	Name:      res.Dataset.Name,
+	// 	Path:      res.Dataset.Path,
+	// 	Dataset:   res.Dataset,
+	// }
+	util.WriteResponse(w, res.Result)
 }
 
 func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
@@ -550,10 +549,10 @@ type DataResponse struct {
 func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.GetParams, error) {
 	listParams := lib.ListParamsFromRequest(r)
 	download := r.FormValue("download") == "true"
-	format := "json"
-	if download {
-		format = r.FormValue("format")
-	}
+	// format := "json"
+	// if download {
+	// 	format = r.FormValue("format")
+	// }
 	// if download is not set, and format is set, make sure the user knows that
 	// setting format won't do anything
 	if !download && r.FormValue("format") != "" && r.FormValue("format") != "json" {
@@ -563,11 +562,11 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 	p := &lib.GetParams{
 		Path:     path,
 		Format:   format,
-		Selector: "body",
 		UseFSI:   r.FormValue("fsi") == "true",
 		Limit:    listParams.Limit,
 		Offset:   listParams.Offset,
 		All:      r.FormValue("all") == "true" && !readOnly,
+		Filter: ".body",
 	}
 
 	if !readOnly {

@@ -83,6 +83,16 @@ func (o *InitOptions) Run() (err error) {
 	if o.Format == "" {
 		o.Format = inputText(o.ErrOut, o.In, "Format of dataset, csv or json", "csv")
 	}
+	// Validate dataset name. The `init` command must only be used for creating new datasets.
+	// Make sure a dataset with this name does not exist in your repo.
+	p := lib.GetParams{
+		Path: ref,
+	}
+	res := lib.GetResult{}
+	if err = o.DatasetRequests.Get(&p, &res); err == nil {
+		// TODO(dlong): Tell user to use `checkout` if the dataset already exists in their repo?
+		return fmt.Errorf("a dataset with the name %s already exists in your repo", ref)
+	}
 
 	p := &lib.InitFSIDatasetParams{
 		Dir:            pwd,

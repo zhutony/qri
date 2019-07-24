@@ -3,6 +3,11 @@ module github.com/qri-io/qri
 go 1.12
 
 replace (
+	github.com/qri-io/dataset => /Users/b5/go/src/github.com/qri-io/dataset
+	github.com/qri-io/filter => /Users/b5/dev/qri/filter
+)
+
+replace (
 	github.com/go-critic/go-critic v0.0.0-20181204210945-c3db6069acc5 => github.com/go-critic/go-critic v0.0.0-20190422201921-c3db6069acc5
 	github.com/go-critic/go-critic v0.0.0-20181204210945-ee9bf5809ead => github.com/go-critic/go-critic v0.0.0-20190210220443-ee9bf5809ead
 	github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6 => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
@@ -48,6 +53,7 @@ require (
 	github.com/qri-io/dataset v0.1.5-0.20191018150659-be7d041b6f00
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
+	github.com/qri-io/filter v0.0.0-20190722174243-4024ef58c6c3
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1

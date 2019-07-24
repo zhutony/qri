@@ -58,6 +58,7 @@ Each change has a path that locates it within the document`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "pretty", "output format. one of [json,pretty]")
+	cmd.Flags().StringVarP(&o.Filter, "filter", "", "", "filter to apply to resulting output")
 	cmd.Flags().BoolVar(&o.Summary, "summary", false, "just output the summary")
 
 	return cmd
@@ -68,7 +69,7 @@ type DiffOptions struct {
 	ioes.IOStreams
 
 	Refs     *RefSelect
-	Selector string
+	Filter  string
 	Format   string
 	Summary  bool
 
@@ -77,12 +78,6 @@ type DiffOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) > 0 {
-		if isDatasetField.MatchString(args[0]) {
-			o.Selector = args[0]
-			args = args[1:]
-		}
-	}
 	o.DatasetRequests, err = f.DatasetRequests()
 
 	if o.Refs, err = GetCurrentRefSelect(f, args, 2); err != nil {
