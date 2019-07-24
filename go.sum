@@ -617,6 +617,11 @@ github.com/prometheus/procfs v0.0.0-20190519111021-9935e8e0588d/go.mod h1:TjEm7z
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/qri-io/apiutil v0.1.0 h1:0XJRfoSNL3rjZiRyfkf8m0CpEZbMxebUb/3dxjAD1hw=
 github.com/qri-io/apiutil v0.1.0/go.mod h1:LbfDISrItJfXIxqMwPjZwrxeYwF0mzjQxToYydVd5aI=
+<<<<<<< HEAD
+=======
+github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d h1:lgcl2BdSQKyUnKcu0DU/dvRKJKiHFtGjQzbfVMK83yQ=
+github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d/go.mod h1:r0Dx7G6IPPlX7PxPM02Pg2CsZnuiMLyL/bexlzvZRtE=
+>>>>>>> feat(source): add ValueForIndex to body
 github.com/qri-io/compare v0.1.0 h1:A/MRx3uEnJ/iMjfJY1VOqH9CYs9zFSEYaFVeXuGfmis=
 github.com/qri-io/compare v0.1.0/go.mod h1:i/tVuDGRXVxhuZ8ZUieF23u6rQ6wLGJl7KKWpoMRaTE=
 github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e h1:NDpp2k+ZqUGEQ5MlafqeNETQWiTYG8NVadBMUq6Bbis=
