@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 )
 
 // RootHandler bundles handlers that may need to be called

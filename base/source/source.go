@@ -2,27 +2,25 @@ package source
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/dataset/vals"
+	"github.com/qri-io/value"
 )
-
-// // Resolver
-// type Resolver struct {
-// 	fs qfs.Filesystem
-// }
-
-// // Resolve returns a value for a path
-// func (s *Source) Resolve(path string) (value interface{}, err error) {
-// 	return nil, fmt.Errorf("not finished")
-// }
 
 // Dataset implements dataset as a traversable linked object
 type Dataset dataset.Dataset
 
+var _ value.Map = (*Dataset)(nil)
+
 // ValueForKey returns the given
-func (ds *Dataset) ValueForKey(key string) (val interface{}, err error) {
+func (ds *Dataset) ValueForKey(k interface{}) (val interface{}, err error) {
+	key, ok := k.(string)
+	if !ok {
+		return nil, fmt.Errorf("source: %v is not a string", k)
+	}
+
 	switch key {
 	case "body":
 		d := &dataset.Dataset{}
@@ -33,7 +31,7 @@ func (ds *Dataset) ValueForKey(key string) (val interface{}, err error) {
 				return nil, err
 			}
 
-			return &DsioIterator{rdr: er}, nil
+			return &Iterator{rdr: er}, nil
 		}
 		return ds.Body, nil
 	case "schema":
@@ -46,17 +44,19 @@ func (ds *Dataset) ValueForKey(key string) (val interface{}, err error) {
 	case "bodyPath":
 		return ds.BodyPath, nil
 	case "commit":
-		return ds.Commit, nil
+		cm := Commit(*ds.Commit)
+		return &cm, nil
 	case "meta":
-		return ds.Meta, nil
+		md := Meta(*ds.Meta)
+		return &md, nil
 	case "name":
 		return ds.Name, nil
 	case "path":
-		return ds.Path, nil
+		return Link(ds.Path), nil
 	case "peername":
 		return ds.Peername, nil
 	case "previousPath":
-		return ds.PreviousPath, nil
+		return Link(ds.PreviousPath + "/dataset.json"), nil
 	case "profileID":
 		return ds.ProfileID, nil
 	case "numVersions":
@@ -68,46 +68,69 @@ func (ds *Dataset) ValueForKey(key string) (val interface{}, err error) {
 	case "transform":
 		return ds.Transform, nil
 	case "viz":
-		return ds.Viz, nil
+		v := Viz(*ds.Viz)
+		return &v, nil
 	default:
 		return nil, fmt.Errorf("key not found: %s", key)
 	}
 }
 
-// DsioIterator is an iterator created from a dsio.EntryReader
-type DsioIterator struct {
+// Iterate is a nil shim for now
+func (ds *Dataset) Iterate() value.Iterator {
+	return nil
+}
+
+// Iterator is an iterator created from a dsio.EntryReader
+type Iterator struct {
 	i   int
 	rdr dsio.EntryReader
+	ent dsio.Entry
+	err error
 }
 
-var _ vals.Iterator = (*DsioIterator)(nil)
+var _ value.Iterator = (*Iterator)(nil)
 
 // Next returns the next value in an entry
-func (it *DsioIterator) Next() (*vals.Entry, bool) {
+func (it *Iterator) Next() bool {
 	it.i++
-	ent, err := it.rdr.ReadEntry()
-	if err != nil {
-		if err.Error() == "EOF" {
-			return nil, true
-		}
-		panic(err)
+	if it.err != nil {
+		return false
 	}
-	return &vals.Entry{
-		Index: it.i - 1,
-		Key:   ent.Key,
-		Value: ent.Value,
-	}, false
+
+	it.ent, it.err = it.rdr.ReadEntry()
+	return true
 }
 
-// Done closes the reader
-func (it *DsioIterator) Done() {
-	if err := it.rdr.Close(); err != nil {
-		panic(err)
+// Key returns the current key value for the iterator
+func (it *Iterator) Key() interface{} {
+	return it.ent.Key
+}
+
+// Scan copies the values in the current iteration into the values pointed at by dest
+func (it *Iterator) Scan(dest interface{}) error {
+	v := reflect.ValueOf(dest)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
+	if !v.CanSet() {
+		return fmt.Errorf("expected pointer value for scan")
+	}
+	v.Set(reflect.ValueOf(it.ent.Value))
+	return it.err
+}
+
+// IsOrdered returns true if there is a total order to the iterator
+func (it *Iterator) IsOrdered() bool {
+	return true
+}
+
+// Close closes the reader
+func (it *Iterator) Close() error {
+	return it.rdr.Close()
 }
 
 // ValueForIndex returns the value at a given index
-func (it *DsioIterator) ValueForIndex(i int) (v interface{}, err error) {
+func (it *Iterator) ValueForIndex(i int) (v interface{}, err error) {
 	defer it.rdr.Close()
 
 	for {
@@ -121,3 +144,9 @@ func (it *DsioIterator) ValueForIndex(i int) (v interface{}, err error) {
 		it.i++
 	}
 }
+
+// Link represents a link to something
+type Link string
+
+// Path is the path this link points to
+func (l Link) Path() string { return string(l) }

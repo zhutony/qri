@@ -22,9 +22,9 @@ func Encode(format string, cfg dataset.FormatConfig, val interface{}) ([]byte, e
 		}
 		if pretty {
 			return json.MarshalIndent(val, "", " ")
-		} else {
-			return json.Marshal(val)
-		}
+		} 
+		
+		return json.Marshal(val)
 	case "yaml", "":
 		return yaml.Marshal(val)
 	default:

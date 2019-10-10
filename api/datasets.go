@@ -15,12 +15,12 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/dsref"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -270,7 +270,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 // otherwise, resolve the peername and proceed as normal
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Paths:   []string{HTTPPathToQriPath(r.URL.Path)},
+		Paths:  []string{HTTPPathToQriPath(r.URL.Path)},
 		UseFSI: r.FormValue("fsi") == "true",
 		Filter: r.FormValue("filter"),
 	}
@@ -549,10 +549,11 @@ type DataResponse struct {
 func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.GetParams, error) {
 	listParams := lib.ListParamsFromRequest(r)
 	download := r.FormValue("download") == "true"
-	// format := "json"
-	// if download {
-	// 	format = r.FormValue("format")
-	// }
+	format := "json"
+	if download {
+		format = r.FormValue("format")
+	}
+
 	// if download is not set, and format is set, make sure the user knows that
 	// setting format won't do anything
 	if !download && r.FormValue("format") != "" && r.FormValue("format") != "json" {
@@ -560,12 +561,12 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 	}
 
 	p := &lib.GetParams{
-		Paths: []string{path},
-		Format:   format,
-		UseFSI:   r.FormValue("fsi") == "true",
-		Limit:    listParams.Limit,
-		Offset:   listParams.Offset,
-		All:      r.FormValue("all") == "true" && !readOnly,
+		Paths:  []string{path},
+		Format: format,
+		UseFSI: r.FormValue("fsi") == "true",
+		Limit:  listParams.Limit,
+		Offset: listParams.Offset,
+		All:    r.FormValue("all") == "true" && !readOnly,
 		// Format:   format,
 		Filter: ".body",
 	}
@@ -612,28 +613,38 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO (b5) - this is inaccurate, we'll need to split api repsonses
+	// between single and set-based queries
+	source := result.Sources[0]
+
+	data, err := lib.Encode(p.Format, nil, result.Result)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	download := r.FormValue("download") == "true"
 	if download {
-		filename, err := lib.GenerateFilename(result.Dataset, p.Format)
+		filename, err := lib.GenerateFilename(source, p.Format)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
 		w.Header().Set("Content-Type", extensionToMimeType("."+p.Format))
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
-		w.Write(result.Bytes)
+		w.Write(data)
 		return
 	}
 
 	page := util.PageFromRequest(r)
-	path := result.Dataset.BodyPath
+	path := source.BodyPath
 	if p.UseFSI {
-		path = result.Dataset.Path
+		path = source.Path
 	}
 
 	dataResponse := DataResponse{
 		Path: path,
-		Data: json.RawMessage(result.Bytes),
+		Data: json.RawMessage(data),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
 		log.Infof("error writing response: %s", err.Error())

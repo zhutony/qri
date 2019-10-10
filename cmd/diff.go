@@ -68,10 +68,10 @@ Each change has a path that locates it within the document`,
 type DiffOptions struct {
 	ioes.IOStreams
 
-	Refs     *RefSelect
+	Refs    *RefSelect
 	Filter  string
-	Format   string
-	Summary  bool
+	Format  string
+	Summary bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -91,7 +91,7 @@ func (o *DiffOptions) Run() (err error) {
 	printRefSelect(o.Out, o.Refs)
 
 	p := &lib.DiffParams{
-		Selector: o.Selector,
+		Selector: o.Filter,
 	}
 
 	if o.Refs.IsLinked() {

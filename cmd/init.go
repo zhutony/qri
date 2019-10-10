@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -86,15 +87,15 @@ func (o *InitOptions) Run() (err error) {
 	// Validate dataset name. The `init` command must only be used for creating new datasets.
 	// Make sure a dataset with this name does not exist in your repo.
 	p := lib.GetParams{
-		Paths: []string{ref},
+		Paths: []string{fmt.Sprintf("me/%s", o.Name)},
 	}
 	res := lib.GetResult{}
 	if err = o.DatasetRequests.Get(&p, &res); err == nil {
 		// TODO(dlong): Tell user to use `checkout` if the dataset already exists in their repo?
-		return fmt.Errorf("a dataset with the name %s already exists in your repo", ref)
+		return fmt.Errorf("a dataset with the name %s already exists in your repo", o.Name)
 	}
 
-	p := &lib.InitFSIDatasetParams{
+	initp := &lib.InitFSIDatasetParams{
 		Dir:            pwd,
 		Mkdir:          o.Mkdir,
 		Format:         o.Format,
@@ -102,7 +103,7 @@ func (o *InitOptions) Run() (err error) {
 		SourceBodyPath: o.SourceBodyPath,
 	}
 	var name string
-	if err = o.FSIMethods.InitDataset(p, &name); err != nil {
+	if err = o.FSIMethods.InitDataset(initp, &name); err != nil {
 		return err
 	}
 

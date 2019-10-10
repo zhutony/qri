@@ -2,9 +2,10 @@ module github.com/qri-io/qri
 
 go 1.12
 
+// github.com/qri-io/dataset => /Users/b5/go/src/github.com/qri-io/dataset
 replace (
-	github.com/qri-io/dataset => /Users/b5/go/src/github.com/qri-io/dataset
-	github.com/qri-io/filter => /Users/b5/dev/qri/filter
+	github.com/qri-io/qfs => /Users/b5/qri/qfs
+	github.com/qri-io/value => /Users/b5/qri/value
 )
 
 replace (
@@ -25,7 +26,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
-	github.com/google/go-cmp v0.3.0
+	github.com/google/go-cmp v0.3.1
 	github.com/ipfs/go-cid v0.0.2
 	github.com/ipfs/go-datastore v0.0.5
 	github.com/ipfs/go-ipfs v0.4.21
@@ -59,6 +60,7 @@ require (
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.1-0.20190927121847-9e99025ffde6
 	github.com/qri-io/starlib v0.4.1
+	github.com/qri-io/value v0.0.0-00010101000000-000000000000
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.2.0

@@ -68,13 +68,14 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 			arg = "structure.schema"
 		}
 
-		if isDatasetField.MatchString(arg) {
-			if o.ComponentName != "" {
-				return fmt.Errorf("cannot provide more than one dataset field")
-			}
-			o.ComponentName = arg
-			continue
-		}
+		// TODO (b5) - this regex was removed? need to restore
+		// if isDatasetField.MatchString(arg) {
+		// 	if o.ComponentName != "" {
+		// 		return fmt.Errorf("cannot provide more than one dataset field")
+		// 	}
+		// 	o.ComponentName = arg
+		// 	continue
+		// }
 
 		pos := strings.Index(arg, "/")
 		if pos > -1 {

@@ -132,7 +132,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 		// Get code taken
 		// taken from ./root.go
 		gp := lib.GetParams{
-			Path:   name,
+			Paths:  []string{name},
 			UseFSI: true,
 		}
 		res := lib.GetResult{}
@@ -145,20 +145,25 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
-		if res.Dataset == nil || res.Dataset.IsEmpty() {
+		if len(res.Sources) == 0 {
 			util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
 			return
 		}
 
+		// TODO (b5) - this is inaccurate, we'll need to split api repsonses
+		// between single and set-based queries
+		source := res.Sources[0]
+
 		// TODO (b5) - why is this necessary?
 		ref := repo.DatasetRef{
-			Peername:  res.Dataset.Peername,
-			ProfileID: profile.ID(res.Dataset.ProfileID),
-			Name:      res.Dataset.Name,
-			Path:      res.Dataset.Path,
-			FSIPath:   res.Ref.FSIPath,
-			Published: res.Ref.Published,
-			Dataset:   res.Dataset,
+			Peername:  source.Peername,
+			ProfileID: profile.ID(source.ProfileID),
+			Name:      source.Name,
+			Path:      source.Path,
+			// TODO (b5) - restore
+			// FSIPath:   p.FSIPath,
+			// Published: source.Published,
+			Dataset: source,
 		}
 
 		util.WriteResponse(w, ref)

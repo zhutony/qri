@@ -149,6 +149,7 @@ github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5a
 github.com/google/go-cmp v0.3.0 h1:crn/baboCvb5fXaQ0IJ1SGTsTVrWpDsCWC8EGETZijY=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1 h1:Xye71clBPdm5HgqGwUkwhbynsUJZhDbS20FvLhQ2izg=
+github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
@@ -623,8 +624,6 @@ github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e h1:NDpp2k+ZqUGEQ5Mlaf
 github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e/go.mod h1:qI9Y3349j3IaL0dKZ+MB0+tMjEzihmsHh3CFbf8hEj4=
 github.com/qri-io/dataset v0.0.0-20190516191825-5a7de4a0f2d4/go.mod h1:JF7Gsqd+3LU7lmOriBRtNVJ0HkciNX6aVjoMAM3bOdA=
 github.com/qri-io/dataset v0.1.1/go.mod h1:iLbXBiN11Mf1gr8R+40arhqtbZOEMbhjDtGXPi2JLRQ=
-github.com/qri-io/dataset v0.1.5-0.20191011213547-f709782a7b3d h1:pDhcAmk5VnJGqsJoduPqOcO0kGPcEBnTp/vNDtAUSs8=
-github.com/qri-io/dataset v0.1.5-0.20191011213547-f709782a7b3d/go.mod h1:l8gFkxVnRz5Fed1iVviXNeUL6w7zRsZrFy58tXlR8CA=
 github.com/qri-io/dataset v0.1.5-0.20191018150659-be7d041b6f00 h1:3c/kX9UYxmZMZ/2ahQ+TtOwOiU2XpSXDe+9C/MvA6us=
 github.com/qri-io/dataset v0.1.5-0.20191018150659-be7d041b6f00/go.mod h1:l8gFkxVnRz5Fed1iVviXNeUL6w7zRsZrFy58tXlR8CA=
 github.com/qri-io/deepdiff v0.1.0 h1:1VXd/ePPrSrq4GRINC4YxmoPHuuLufg2ujMKvvEWsDc=
@@ -632,7 +631,6 @@ github.com/qri-io/deepdiff v0.1.0/go.mod h1:/O1HQVAlm3yhgQvNwyzsKaECfM2vVSx6Kxtt
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
 github.com/qri-io/doggos v0.1.0/go.mod h1:FmyznoDwt2mhskYpnasyoEsxNr490qVbX9Sf6NP2Crg=
 github.com/qri-io/dsdiff v0.1.1/go.mod h1:dbrWaooqfVewLAZIJMbqIljg9uEH3RC5f32jOKruYgE=
-github.com/qri-io/filter v0.0.0-20190722174243-4024ef58c6c3 h1:eHphq9FZiPyp4IerktPsI4Y0z1mAyowSrk0/lDIq48c=
 github.com/qri-io/filter v0.0.0-20190722174243-4024ef58c6c3/go.mod h1:u/jGubh69fc2oBEzFgGXtMwPWg2ObiGJ+zyBOBmLNd8=
 github.com/qri-io/ioes v0.1.0 h1:MCkiJcBhxFS9DKrvtrUQ+o1IQtZFKYioMt12XauqUT0=
 github.com/qri-io/ioes v0.1.0/go.mod h1:M2WXAvGn7tb/CeAE2YwYWOMFDeqjGtu96WKNlzSz76c=

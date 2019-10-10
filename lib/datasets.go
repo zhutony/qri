@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/rpc"
@@ -10,15 +9,16 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/filter"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/source"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/value/filter"
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
@@ -146,34 +146,35 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	}
 	ctx := context.TODO()
 
-	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
-	if err != nil {
-		return err
-	}
+	// TODO (b5) - need to re-enable loading from FSI link
+	// ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
+	// if err != nil {
+	// 	return err
+	// }
 
-	var ds *dataset.Dataset
-	if p.UseFSI {
-		if ref.FSIPath == "" {
-			return fsi.ErrNoLink
-		}
-		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
-			return fmt.Errorf("loading linked dataset: %s", err)
-		}
-	} else {
-		ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
-		if err != nil {
-			return fmt.Errorf("loading dataset: %s", err)
-		}
-	}
+	// var ds *dataset.Dataset
+	// if p.UseFSI {
+	// 	if ref.FSIPath == "" {
+	// 		return fsi.ErrNoLink
+	// 	}
+	// 	if ds, _, _, err = fsi.ReadDir(ref.FSIPath); err != nil {
+	// 		return fmt.Errorf("loading linked dataset: %s", err)
+	// 	}
+	// } else {
+	// 	ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
+	// 	if err != nil {
+	// 		return fmt.Errorf("loading dataset: %s", err)
+	// 	}
+	// }
 
-	ds.Name = ref.Name
-	ds.Peername = ref.Peername
-	res.Source = ds
-	res.Result = ds
+	// ds.Name = ref.Name
+	// ds.Peername = ref.Peername
+	// res.Source = ds
+	// res.Result = ds
 
-	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
-		return err
-	}
+	// if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
+	// 	return err
+	// }
 
 	results := []interface{}{}
 
@@ -192,14 +193,14 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			return
 		}
 
-		ds, err = dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
+		ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
 		if err != nil {
 			return fmt.Errorf("error loading dataset")
 		}
 		ds.Name = ref.Name
 		ds.Peername = ref.Peername
 
-		if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+		if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
 			return
 		}
 
@@ -220,76 +221,15 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	}
 
 	if p.Filter != "" {
-		res.Result, err = filter.Apply(p.Filter, res.Result)
+		filt := filter.New(p.Filter, source.QFSResolver{FS: r.inst.qfs})
+		res.Result, err = filt.Apply(ctx, res.Result)
 		if err != nil {
 			return err
 		}
 	}
 
-	// if p.Selector == "body" {
-	// 	// `qri get body` loads the body
-	// 	if !p.All && (p.Limit < 0 || p.Offset < 0) {
-	// 		return fmt.Errorf("invalid limit / offset settings")
-	// 	}
-	// 	df, err := dataset.ParseDataFormatString(p.Format)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	res.Result, err = Encode(p.Format, p.FormatConfig, res.Result)
 
-	// 	bufData, err := actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	res.Bytes = bufData
-	// 	return err
-	// } else if p.Selector == "transform.script" && ds.Transform != nil && ds.Transform.ScriptFile() != nil {
-	// 	// `qri get transform.script` loads the transform script, as a special case
-	// 	// TODO (b5): this is a hack that should be generalized
-	// 	res.Bytes, err = ioutil.ReadAll(ds.Transform.ScriptFile())
-	// 	return err
-	// } else if p.Selector == "viz.script" && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
-	// 	// `qri get viz.script` loads the visualization script, as a special case
-	// 	res.Bytes, err = ioutil.ReadAll(ds.Viz.ScriptFile())
-	// 	return err
-	// } else if p.Selector == "rendered" && ds.Viz != nil && ds.Viz.RenderedFile() != nil {
-	// 	// `qri get rendered` loads the rendered visualization script, as a special case
-	// 	res.Bytes, err = ioutil.ReadAll(ds.Viz.RenderedFile())
-	// 	return err
-	// } else {
-	// 	var value interface{}
-	// 	if p.Selector == "" {
-	// 		// `qri get` without a selector loads only the dataset head
-	// 		value = res.Dataset
-	// 	} else {
-	// 		// `qri get <selector>` loads only the applicable component / field
-	// 		value, err = base.ApplyPath(res.Dataset, p.Selector)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// 	switch p.Format {
-	// 	case "json":
-	// 		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
-	// 		pretty := true
-	// 		if p.FormatConfig != nil {
-	// 			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
-	// 			if ok {
-	// 				pretty = pvalue
-	// 			}
-	// 		}
-	// 		if pretty {
-	// 			res.Bytes, err = json.MarshalIndent(value, "", " ")
-	// 		} else {
-	// 			res.Bytes, err = json.Marshal(value)
-	// 		}
-	// 	case "yaml", "":
-	// 		res.Bytes, err = yaml.Marshal(value)
-	// 	default:
-	// 		return fmt.Errorf("unknown format: \"%s\"", p.Format)
-	// 	}
-	// 	return err
-	// }
 	return err
 }
 
