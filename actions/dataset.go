@@ -4,16 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
@@ -235,126 +232,5 @@ func AddDataset(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remot
 		return fmt.Errorf("error loading added dataset: %s", ref.Path)
 	}
 
-	return ReplaceRefIfMoreRecent(node, &prevRef, ref)
-}
-
-// ReplaceRefIfMoreRecent replaces the given ref in the ref store, if
-// it is more recent then the ref currently in the refstore
-func ReplaceRefIfMoreRecent(node *p2p.QriNode, prev, curr *repo.DatasetRef) error {
-	var (
-		prevTime time.Time
-		currTime time.Time
-	)
-	if curr == nil || curr.Dataset == nil || curr.Dataset.Commit == nil {
-		return fmt.Errorf("added dataset ref is not fully dereferenced")
-	}
-	currTime = curr.Dataset.Commit.Timestamp
-	if prev == nil || prev.Dataset == nil || prev.Dataset.Commit == nil {
-		return fmt.Errorf("previous dataset ref is not fully derefernced")
-	}
-	prevTime = prev.Dataset.Commit.Timestamp
-
-	if prevTime.Before(currTime) || prevTime.Equal(currTime) {
-		if err := node.Repo.PutRef(*curr); err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
-		}
-	}
-	return nil
-}
-
-// SetPublishStatus configures the publish status of a stored reference
-func SetPublishStatus(node *p2p.QriNode, ref *repo.DatasetRef, published bool) (err error) {
-	if published {
-		node.LocalStreams.PrintErr("📝 listing dataset for p2p discovery\n")
-	} else {
-		node.LocalStreams.PrintErr("unlisting dataset from p2p discovery\n")
-	}
-	return base.SetPublishStatus(node.Repo, ref, published)
-}
-
-// ModifyDataset alters a reference by changing what dataset it refers to
-func ModifyDataset(node *p2p.QriNode, current, new *repo.DatasetRef, isRename bool) (err error) {
-	r := node.Repo
-	if err := validate.ValidName(new.Name); err != nil {
-		return err
-	}
-	if err := repo.CanonicalizeDatasetRef(r, current); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error with existing reference: %s", err.Error())
-	}
-	err = repo.CanonicalizeDatasetRef(r, new)
-	if err == nil {
-		if isRename {
-			return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
-		}
-	} else if err != repo.ErrNotFound {
-		log.Debug(err.Error())
-		return fmt.Errorf("error with new reference: %s", err.Error())
-	}
-	if isRename {
-		new.Path = current.Path
-
-		if err = r.Logbook().WriteNameAmend(context.TODO(), repo.ConvertToDsref(*current), new.Name); err != nil && err != logbook.ErrNoLogbook {
-			return err
-		}
-	}
-
-	if err = r.DeleteRef(*current); err != nil {
-		return err
-	}
-	if err = r.PutRef(*new); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// DeleteDataset removes a dataset from the store
-func DeleteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
-	r := node.Repo
-
-	if err = repo.CanonicalizeDatasetRef(r, ref); err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	p, err := r.GetRef(*ref)
-	if err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-	if ref.Path != p.Path {
-		return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
-	}
-
-	// TODO - this is causing bad things in our tests. For some reason core repo explodes with nil
-	// references when this is on and go test ./... is run from $GOPATH/github.com/qri-io/qri
-	// let's upgrade IPFS to the latest version & try again
-	log, err := base.DatasetLog(ctx, r, *ref, 10000, 0, false)
-	if err != nil {
-		return err
-	}
-
-	// for _, ref := range log {
-	// 	time.Sleep(time.Millisecond * 50)
-	// 	if err = base.UnpinDataset(r, ref); err != nil && err != repo.ErrNotPinner {
-	// 		return err
-	// 	}
-	// }
-
-	if err = r.DeleteRef(*ref); err != nil {
-		return err
-	}
-
-	if err = base.UnpinDataset(ctx, r, *ref); err != nil && err != repo.ErrNotPinner {
-		return err
-	}
-
-	err = r.Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(*ref), len(log))
-	if err == logbook.ErrNotFound || err == logbook.ErrNoLogbook {
-		return nil
-	}
-
-	return err
+	return base.ReplaceRefIfMoreRecent(node.Repo, &prevRef, ref)
 }

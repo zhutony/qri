@@ -327,3 +327,50 @@ func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	}
 	return repo.ErrNotPinner
 }
+
+// DeleteDataset removes a dataset from the store
+func DeleteDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err error) {
+	if err = repo.CanonicalizeDatasetRef(r, ref); err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+
+	p, err := r.GetRef(*ref)
+	if err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+	if ref.Path != p.Path {
+		return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
+	}
+
+	// TODO (b5) - this is causing bad things in our tests. For some reason core repo explodes with nil
+	// references when this is on and go test ./... is run from $GOPATH/github.com/qri-io/qri
+	// let's upgrade IPFS to the latest version & try again
+	log, err := DatasetLog(ctx, r, *ref, 10000, 0, false)
+	if err != nil {
+		return err
+	}
+
+	// for _, ref := range log {
+	// 	time.Sleep(time.Millisecond * 50)
+	// 	if err = base.UnpinDataset(r, ref); err != nil && err != repo.ErrNotPinner {
+	// 		return err
+	// 	}
+	// }
+
+	if err = r.DeleteRef(*ref); err != nil {
+		return err
+	}
+
+	if err = UnpinDataset(ctx, r, *ref); err != nil && err != repo.ErrNotPinner {
+		return err
+	}
+
+	err = r.Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(*ref), len(log))
+	if err == logbook.ErrNotFound || err == logbook.ErrNoLogbook {
+		return nil
+	}
+
+	return err
+}
