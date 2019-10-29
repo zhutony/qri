@@ -19,7 +19,7 @@ import (
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	qfs "github.com/qri-io/qfs"
-	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
+	ipfsfs "github.com/qri-io/qfs/ipfsfs"
 	cfgtest "github.com/qri-io/qri/config/test"
 	qrirepo "github.com/qri-io/qri/repo"
 	profile "github.com/qri-io/qri/repo/profile"

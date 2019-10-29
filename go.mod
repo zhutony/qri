@@ -3,6 +3,12 @@ module github.com/qri-io/qri
 go 1.12
 
 replace (
+	github.com/qri-io/dataset => /Users/b5/qri/dataset
+	github.com/qri-io/qfs => /Users/b5/qri/qfs
+	github.com/qri-io/value => /Users/b5/qri/value
+)
+
+replace (
 	github.com/go-critic/go-critic v0.0.0-20181204210945-c3db6069acc5 => github.com/go-critic/go-critic v0.0.0-20190422201921-c3db6069acc5
 	github.com/go-critic/go-critic v0.0.0-20181204210945-ee9bf5809ead => github.com/go-critic/go-critic v0.0.0-20190210220443-ee9bf5809ead
 	github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6 => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
@@ -20,7 +26,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
-	github.com/google/go-cmp v0.3.0
+	github.com/google/go-cmp v0.3.1
 	github.com/ipfs/go-cid v0.0.3
 	github.com/ipfs/go-datastore v0.1.1
 	github.com/ipfs/go-ds-badger v0.0.7 // indirect
@@ -53,6 +59,7 @@ require (
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.1-0.20191025195012-9971677b190d
 	github.com/qri-io/starlib v0.4.2-0.20191025202035-0f16a7d50967
+	github.com/qri-io/value v0.0.0-20191026170322-1417788635f0
 	github.com/qri-io/varName v0.1.0
 	github.com/russross/blackfriday v1.5.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887

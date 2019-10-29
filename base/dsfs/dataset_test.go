@@ -14,7 +14,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_filestore "github.com/qri-io/qfs/ipfsfs"
 )
 
 // Test Private Key. peerId: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt

@@ -21,7 +21,7 @@ import (
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/ioes"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_filestore "github.com/qri-io/qfs/ipfsfs"
 	"github.com/qri-io/qri/config"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"

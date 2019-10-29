@@ -10,7 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/doggos"
-	ipfs "github.com/qri-io/qfs/cafs/ipfs"
+	ipfs "github.com/qri-io/qfs/ipfsfs"
 )
 
 // CryptoGenerator is an interface for generating cryptographic info like private keys and peerIDs

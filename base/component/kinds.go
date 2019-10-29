@@ -375,7 +375,7 @@ func (cc *CommitComponent) StructuredData() (interface{}, error) {
 // BodyComponent represents a body component
 type BodyComponent struct {
 	BaseComponent
-	Resolver       qfs.PathResolver
+	Resolver       qfs.Filesystem
 	BodyFile       qfs.File
 	Structure      *dataset.Structure
 	InferredSchema map[string]interface{}
@@ -565,7 +565,7 @@ func SerializeBody(source interface{}, st *dataset.Structure) ([]byte, error) {
 // ReadmeComponent represents a readme component
 type ReadmeComponent struct {
 	BaseComponent
-	Resolver qfs.PathResolver
+	Resolver qfs.Filesystem
 	Value    *dataset.Readme
 }
 

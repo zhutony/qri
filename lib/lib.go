@@ -19,9 +19,9 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfs "github.com/qri-io/qfs/cafs/ipfs"
-	ipfs_http "github.com/qri-io/qfs/cafs/ipfs_http"
 	"github.com/qri-io/qfs/httpfs"
+	ipfs_http "github.com/qri-io/qfs/ipfs_http"
+	ipfs "github.com/qri-io/qfs/ipfsfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
@@ -525,6 +525,7 @@ func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, er
 
 	if ipfss, ok := store.(*ipfs.Filestore); ok {
 		mux["ipfs"] = ipfss
+		mux["ipld"] = ipfss
 	}
 
 	fsys := qfs.NewMux(mux)

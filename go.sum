@@ -130,6 +130,8 @@ github.com/google/flatbuffers v1.11.0/go.mod h1:1AeVuKshWv4vARoZatz6mlQ0JxURH0Kv
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/google/go-cmp v0.3.0 h1:crn/baboCvb5fXaQ0IJ1SGTsTVrWpDsCWC8EGETZijY=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
+github.com/google/go-cmp v0.3.1 h1:Xye71clBPdm5HgqGwUkwhbynsUJZhDbS20FvLhQ2izg=
+github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
@@ -740,6 +742,8 @@ github.com/qri-io/qfs v0.1.1-0.20191025195012-9971677b190d h1:va1ofqTQ62ilFWUs71
 github.com/qri-io/qfs v0.1.1-0.20191025195012-9971677b190d/go.mod h1:EwZJGvRTOuwclCz7egSZXmj9MqE/5vXP49uzl65/jIk=
 github.com/qri-io/starlib v0.4.2-0.20191025202035-0f16a7d50967 h1:Jfkzl2OS1EM6jLTGOssPF8cB4Y8Y5ynz37hKJwNwWF0=
 github.com/qri-io/starlib v0.4.2-0.20191025202035-0f16a7d50967/go.mod h1:7DPO4domFU579Ga6E61sB9VFNaniPVwJP5C4bBCu3wA=
+github.com/qri-io/value v0.0.0-20191026170322-1417788635f0 h1:0WpgLETyEm4NgENtEXvZYec+4aZV/zrM3OtGDRfdU1I=
+github.com/qri-io/value v0.0.0-20191026170322-1417788635f0/go.mod h1:8zpwt44vPwmvK5gOoyMDajLbSxgcNOka1nXbLzXUV/8=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=
 github.com/qri-io/varName v0.1.0/go.mod h1:IGWuuGOHhLJ9ZZg28C/+oMYm1QYP+pAorNZKQpdXhxQ=
 github.com/rs/cors v1.6.0 h1:G9tHG9lebljV9mfp9SNPDL36nCDxmo3zTlAf1YgvzmI=

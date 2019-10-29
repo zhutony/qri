@@ -121,9 +121,9 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 // references within the repo if successful
 func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref repo.DatasetRef, err error) {
 	var (
-		pro     *profile.Profile
-		path    string
-		resBody qfs.File
+		pro  *profile.Profile
+		path string
+		// resBody qfs.File
 	)
 
 	pro, err = r.Profile()
@@ -169,17 +169,18 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		return
 	}
 
-	if err = ReadDataset(ctx, r, &ref); err != nil {
-		return
-	}
+	// TODO (b5) - disabled for now
+	// if err = ReadDataset(ctx, r, &ref); err != nil {
+	// 	return
+	// }
 
-	// need to open here b/c we might be doing a dry-run, which would mean we have
-	// references to files in a store that won't exist after this function call
-	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
-	// knows about the store
-	if resBody, err = r.Store().Get(ctx, ref.Dataset.BodyPath); err != nil {
-		log.Error("error getting from store:", err.Error())
-	}
-	ref.Dataset.SetBodyFile(resBody)
+	// // need to open here b/c we might be doing a dry-run, which would mean we have
+	// // references to files in a store that won't exist after this function call
+	// // TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
+	// // knows about the store
+	// if resBody, err = r.Store().Get(ctx, ref.Dataset.BodyPath); err != nil {
+	// 	log.Error("error getting from store:", err.Error())
+	// }
+	// ref.Dataset.SetBodyFile(resBody)
 	return
 }

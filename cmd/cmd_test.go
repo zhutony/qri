@@ -14,6 +14,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
+	ipfs_filestore "github.com/qri-io/qfs/ipfsfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"

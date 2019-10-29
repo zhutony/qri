@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -22,11 +21,52 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsdiff"
+	"github.com/qri-io/value"
 )
 
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
 // returning a fully-hydrated dataset
-func LoadDataset(ctx context.Context, store cafs.Filestore, path string) (*dataset.Dataset, error) {
+func LoadDataset(ctx context.Context, fs qfs.Filesystem, path string) (*dataset.Dataset, error) {
+	log.Debugf("LoadDataset: '%s'", path)
+	if strings.HasPrefix(path, "/ipfs/") {
+		if store, ok := fs.(cafs.Filestore); ok {
+			return loadIPFSDataset(ctx, store, path)
+		}
+		return nil, fmt.Errorf("passed in filesystem isn't a cafs.Filestore")
+	}
+
+	f, err := fs.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	ds := &dataset.Dataset{}
+	if dsv, ok := f.Value().(map[interface{}]interface{}); ok {
+		if mdl, ok := dsv["meta"].(value.Link); ok {
+			mdv, err := fs.Resolve(ctx, mdl)
+			if err != nil {
+				return nil, err
+			}
+			if mdm, ok := mdv.(map[interface{}]interface{}); ok {
+				ds.Meta = &dataset.Meta{
+					Title: imString(mdm, "title"),
+				}
+			}
+		}
+	}
+	return ds, nil
+}
+
+func imString(m map[interface{}]interface{}, key string) string {
+	if v, ok := m[key]; ok {
+		if str, ok := v.(string); ok {
+			return str
+		}
+	}
+	return ""
+}
+
+func loadIPFSDataset(ctx context.Context, store cafs.Filestore, path string) (*dataset.Dataset, error) {
 	ds, err := LoadDatasetRefs(ctx, store, path)
 	if err != nil {
 		log.Debug(err.Error())
@@ -36,7 +76,6 @@ func LoadDataset(ctx context.Context, store cafs.Filestore, path string) (*datas
 		log.Debug(err.Error())
 		return nil, err
 	}
-
 	return ds, nil
 }
 
@@ -226,7 +265,7 @@ func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *datase
 		return
 	}
 
-	path, err = WriteDataset(ctx, store, ds, pin)
+	path, err = WriteDataset(ctx, store, ds)
 	if err != nil {
 		log.Debug(err.Error())
 		err = fmt.Errorf("error writing dataset: %s", err.Error())
@@ -529,238 +568,298 @@ func cleanTitleAndMessage(sTitle, sMsg *string, diffDescription string) {
 }
 
 // WriteDataset writes a dataset to a cafs, replacing subcomponents of a dataset with path references
-// during the write process. Directory structure is according to PackageFile naming conventions.
-// This method is currently exported, but 99% of use cases should use CreateDataset instead of this
-// lower-level function
-func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, pin bool) (string, error) {
-
-	if ds == nil || ds.IsEmpty() {
-		return "", fmt.Errorf("cannot save empty dataset")
-	}
-	name := ds.Name // preserve name for body file
-	bodyFile := ds.BodyFile()
-	fileTasks := 0
-	addedDataset := false
-	adder, err := store.NewAdder(pin, true)
-	if err != nil {
-		return "", fmt.Errorf("error creating new adder: %s", err.Error())
-	}
-
-	if ds.Viz != nil {
-		ds.Viz.DropTransientValues()
-		vizScript := ds.Viz.ScriptFile()
-		vizRendered := ds.Viz.RenderedFile()
-		// add task for the viz.json
-		if vizRendered != nil {
-			// add the rendered visualization
-			// and add working group for adding the viz script file
-			vrFile := qfs.NewMemfileReader(PackageFileRenderedViz.String(), vizRendered)
-			defer vrFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, vrFile)
-		} else if vizScript != nil {
-			// add the vizScript
-			vsFile := qfs.NewMemfileReader(vizScriptFilename, vizScript)
-			defer vsFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, vsFile)
-		} else {
-			vizdata, err := json.Marshal(ds.Viz)
-			if err != nil {
-				return "", fmt.Errorf("error marshalling dataset viz to json: %s", err.Error())
-			}
-			fileTasks++
-			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
-		}
-	}
-
-	if ds.Readme != nil {
-		ds.Readme.DropTransientValues()
-		readmeScript := ds.Readme.ScriptFile()
-		readmeRendered := ds.Readme.RenderedFile()
-		// add task for the readme
-		if readmeRendered != nil {
-			// add the rendered visualization
-			// and add working group for adding the viz script file
-			rmFile := qfs.NewMemfileReader(PackageFileRenderedReadme.String(), readmeRendered)
-			defer rmFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, rmFile)
-		} else if readmeScript != nil {
-			// add the readmeScript
-			rmFile := qfs.NewMemfileReader(readmeScriptFilename, readmeScript)
-			defer rmFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, rmFile)
-		} else {
-			readmeData, err := json.Marshal(ds.Readme)
-			if err != nil {
-				return "", fmt.Errorf("error marshalling dataset readme to json: %s", err.Error())
-			}
-			fileTasks++
-			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileReadme.String(), readmeData))
-		}
-	}
-
-	if ds.Meta != nil {
-		mdf, err := JSONFile(PackageFileMeta.String(), ds.Meta)
-		if err != nil {
-			return "", fmt.Errorf("error marshaling metadata to json: %s", err.Error())
-		}
-		fileTasks++
-		adder.AddFile(ctx, mdf)
-	}
-
-	if ds.Transform != nil {
-		// TODO (b5): this is validation logic, should happen before WriteDataset is ever called
-		// all resources must be references
-		for key, r := range ds.Transform.Resources {
-			if r.Path == "" {
-				return "", fmt.Errorf("transform resource %s requires a path to save", key)
-			}
-		}
-
-		sr := ds.Transform.ScriptFile()
-		ds.Transform.DropTransientValues()
-		if sr != nil {
-			tsFile := qfs.NewMemfileReader(transformScriptFilename, sr)
-			defer tsFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, tsFile)
-			// NOTE - add wg for the transform.json file ahead of time, which isn't completed
-			// until after scriptPath has been added
-		} else {
-			tfdata, err := json.Marshal(ds.Transform)
-			if err != nil {
-				return "", fmt.Errorf("error marshalling dataset transform to json: %s", err.Error())
-			}
-
-			fileTasks++
-			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileTransform.String(), tfdata))
-		}
-	}
-
-	if ds.Commit != nil {
-		ds.Commit.DropTransientValues()
-		cmf, err := JSONFile(PackageFileCommit.String(), ds.Commit)
-		if err != nil {
-			return "", fmt.Errorf("error marshilng dataset commit message to json: %s", err.Error())
-		}
-		fileTasks++
-		adder.AddFile(ctx, cmf)
-	}
-
-	if ds.Structure != nil {
-		ds.Structure.DropTransientValues()
-		stf, err := JSONFile(PackageFileStructure.String(), ds.Structure)
-		if err != nil {
-			return "", fmt.Errorf("error marshaling dataset structure to json: %s", err.Error())
-		}
-		fileTasks++
-		adder.AddFile(ctx, stf)
-	}
-
-	fileTasks++
-	adder.AddFile(ctx, bodyFile)
-
-	var path string
-	done := make(chan error, 0)
-	go func() {
-		for ao := range adder.Added() {
-			path = ao.Path
-			switch ao.Name {
-			case PackageFileStructure.String():
-				ds.Structure = dataset.NewStructureRef(ao.Path)
-			case PackageFileTransform.String():
-				ds.Transform = dataset.NewTransformRef(ao.Path)
-			case PackageFileMeta.String():
-				ds.Meta = dataset.NewMetaRef(ao.Path)
-			case PackageFileCommit.String():
-				ds.Commit = dataset.NewCommitRef(ao.Path)
-			case PackageFileViz.String():
-				ds.Viz = dataset.NewVizRef(ao.Path)
-			case bodyFile.FileName():
-				ds.BodyPath = ao.Path
-				// ds.SetBodyFile(qfs.NewMemfileBytes(bodyFile.FileName(), bodyBytesBuf.Bytes()))
-			case transformScriptFilename:
-				ds.Transform.ScriptPath = ao.Path
-				tfdata, err := json.Marshal(ds.Transform)
-				if err != nil {
-					done <- err
-					return
-				}
-				// Add the encoded transform file, decrementing the stray fileTasks from above
-				fileTasks++
-				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileTransform.String(), tfdata))
-			case PackageFileRenderedViz.String():
-				ds.Viz.RenderedPath = ao.Path
-				vsFile := qfs.NewMemfileReader(vizScriptFilename, ds.Viz.ScriptFile())
-				defer vsFile.Close()
-				fileTasks++
-				adder.AddFile(ctx, vsFile)
-			case vizScriptFilename:
-				ds.Viz.ScriptPath = ao.Path
-				vizdata, err := json.Marshal(ds.Viz)
-				if err != nil {
-					done <- err
-					return
-				}
-				// Add the encoded transform file, decrementing the stray fileTasks from above
-				fileTasks++
-				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
-			case PackageFileRenderedReadme.String():
-				ds.Readme.RenderedPath = ao.Path
-				vsFile := qfs.NewMemfileReader(readmeScriptFilename, ds.Readme.ScriptFile())
-				defer vsFile.Close()
-				fileTasks++
-				adder.AddFile(ctx, vsFile)
-			case readmeScriptFilename:
-				ds.Readme.ScriptPath = ao.Path
-				readmeData, err := json.Marshal(ds.Readme)
-				if err != nil {
-					done <- err
-					return
-				}
-				// Add the encoded transform file, decrementing the stray fileTasks from above
-				fileTasks++
-				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileReadme.String(), readmeData))
-			}
-
-			fileTasks--
-			if fileTasks == 0 {
-				if !addedDataset {
-					ds.DropTransientValues()
-					dsdata, err := json.Marshal(ds)
-					if err != nil {
-						done <- err
-						return
-					}
-
-					adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileDataset.String(), dsdata))
-				}
-				//
-				if err := adder.Close(); err != nil {
-					done <- err
-					return
-				}
-			}
-		}
-		done <- nil
-	}()
-
-	err = <-done
-	if err != nil {
-		return path, err
-	}
-	// TODO (b5): currently we're loading to keep the ds pointer hydrated post-write
-	// we should remove that assumption, allowing callers to skip this load step, which may
-	// be unnecessary
-	var loaded *dataset.Dataset
-	loaded, err = LoadDataset(ctx, store, path)
+func WriteDataset(ctx context.Context, fs qfs.Filesystem, ds *dataset.Dataset) (path string, err error) {
+	peername, name := ds.Peername, ds.Name
+	file, err := PrepareIPFSFile(ds)
 	if err != nil {
 		return "", err
 	}
-	loaded.Name = name
-	*ds = *loaded
+
+	if path, err = fs.Put(ctx, file); err != nil {
+		return "", err
+	}
+
+	ds.Peername = peername
+	ds.Name = name
+	ds.Path = path
 	return path, nil
+}
+
+// // WriteDataset writes a dataset to a cafs, replacing subcomponents of a dataset with path references
+// // during the write process. Directory structure is according to PackageFile naming conventions.
+// // This method is currently exported, but 99% of use cases should use CreateDataset instead of this
+// // lower-level function
+// func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, pin bool) (string, error) {
+
+// 	if ds == nil || ds.IsEmpty() {
+// 		return "", fmt.Errorf("cannot save empty dataset")
+// 	}
+// 	name := ds.Name // preserve name for body file
+// 	bodyFile := ds.BodyFile()
+// 	fileTasks := 0
+// 	addedDataset := false
+// 	adder, err := store.NewAdder(pin, true)
+// 	if err != nil {
+// 		return "", fmt.Errorf("error creating new adder: %s", err.Error())
+// 	}
+
+// 	if ds.Viz != nil {
+// 		ds.Viz.DropTransientValues()
+// 		vizScript := ds.Viz.ScriptFile()
+// 		vizRendered := ds.Viz.RenderedFile()
+// 		// add task for the viz.json
+// 		if vizRendered != nil {
+// 			// add the rendered visualization
+// 			// and add working group for adding the viz script file
+// 			vrFile := qfs.NewMemfileReader(PackageFileRenderedViz.String(), vizRendered)
+// 			defer vrFile.Close()
+// 			fileTasks++
+// 			adder.AddFile(ctx, vrFile)
+// 		} else if vizScript != nil {
+// 			// add the vizScript
+// 			vsFile := qfs.NewMemfileReader(vizScriptFilename, vizScript)
+// 			defer vsFile.Close()
+// 			fileTasks++
+// 			adder.AddFile(ctx, vsFile)
+// 		} else {
+// 			vizdata, err := json.Marshal(ds.Viz)
+// 			if err != nil {
+// 				return "", fmt.Errorf("error marshalling dataset viz to json: %s", err.Error())
+// 			}
+// 			fileTasks++
+// 			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
+// 		}
+// 	}
+
+// 	if ds.Readme != nil {
+// 		ds.Readme.DropTransientValues()
+// 		readmeScript := ds.Readme.ScriptFile()
+// 		readmeRendered := ds.Readme.RenderedFile()
+// 		// add task for the readme
+// 		if readmeRendered != nil {
+// 			// add the rendered visualization
+// 			// and add working group for adding the viz script file
+// 			rmFile := qfs.NewMemfileReader(PackageFileRenderedReadme.String(), readmeRendered)
+// 			defer rmFile.Close()
+// 			fileTasks++
+// 			adder.AddFile(ctx, rmFile)
+// 		} else if readmeScript != nil {
+// 			// add the readmeScript
+// 			rmFile := qfs.NewMemfileReader(readmeScriptFilename, readmeScript)
+// 			defer rmFile.Close()
+// 			fileTasks++
+// 			adder.AddFile(ctx, rmFile)
+// 		} else {
+// 			readmeData, err := json.Marshal(ds.Readme)
+// 			if err != nil {
+// 				return "", fmt.Errorf("error marshalling dataset readme to json: %s", err.Error())
+// 			}
+// 			fileTasks++
+// 			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileReadme.String(), readmeData))
+// 		}
+// 	}
+
+// 	if ds.Meta != nil {
+// 		mdf, err := JSONFile(PackageFileMeta.String(), ds.Meta)
+// 		if err != nil {
+// 			return "", fmt.Errorf("error marshaling metadata to json: %s", err.Error())
+// 		}
+// 		fileTasks++
+// 		adder.AddFile(ctx, mdf)
+// 	}
+
+// 	if ds.Transform != nil {
+// 		// TODO (b5): this is validation logic, should happen before WriteDataset is ever called
+// 		// all resources must be references
+// 		for key, r := range ds.Transform.Resources {
+// 			if r.Path == "" {
+// 				return "", fmt.Errorf("transform resource %s requires a path to save", key)
+// 			}
+// 		}
+
+// 		sr := ds.Transform.ScriptFile()
+// 		ds.Transform.DropTransientValues()
+// 		if sr != nil {
+// 			tsFile := qfs.NewMemfileReader(transformScriptFilename, sr)
+// 			defer tsFile.Close()
+// 			fileTasks++
+// 			adder.AddFile(ctx, tsFile)
+// 			// NOTE - add wg for the transform.json file ahead of time, which isn't completed
+// 			// until after scriptPath has been added
+// 		} else {
+// 			tfdata, err := json.Marshal(ds.Transform)
+// 			if err != nil {
+// 				return "", fmt.Errorf("error marshalling dataset transform to json: %s", err.Error())
+// 			}
+
+// 			fileTasks++
+// 			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileTransform.String(), tfdata))
+// 		}
+// 	}
+
+// 	if ds.Commit != nil {
+// 		ds.Commit.DropTransientValues()
+// 		cmf, err := JSONFile(PackageFileCommit.String(), ds.Commit)
+// 		if err != nil {
+// 			return "", fmt.Errorf("error marshilng dataset commit message to json: %s", err.Error())
+// 		}
+// 		fileTasks++
+// 		adder.AddFile(ctx, cmf)
+// 	}
+
+// 	if ds.Structure != nil {
+// 		ds.Structure.DropTransientValues()
+// 		stf, err := JSONFile(PackageFileStructure.String(), ds.Structure)
+// 		if err != nil {
+// 			return "", fmt.Errorf("error marshaling dataset structure to json: %s", err.Error())
+// 		}
+// 		fileTasks++
+// 		adder.AddFile(ctx, stf)
+// 	}
+
+// 	fileTasks++
+// 	adder.AddFile(ctx, bodyFile)
+
+// 	var path string
+// 	done := make(chan error, 0)
+// 	go func() {
+// 		for ao := range adder.Added() {
+// 			path = ao.Path
+// 			switch ao.Name {
+// 			case PackageFileStructure.String():
+// 				ds.Structure = dataset.NewStructureRef(ao.Path)
+// 			case PackageFileTransform.String():
+// 				ds.Transform = dataset.NewTransformRef(ao.Path)
+// 			case PackageFileMeta.String():
+// 				ds.Meta = dataset.NewMetaRef(ao.Path)
+// 			case PackageFileCommit.String():
+// 				ds.Commit = dataset.NewCommitRef(ao.Path)
+// 			case PackageFileViz.String():
+// 				ds.Viz = dataset.NewVizRef(ao.Path)
+// 			case bodyFile.FileName():
+// 				ds.BodyPath = ao.Path
+// 				// ds.SetBodyFile(qfs.NewMemfileBytes(bodyFile.FileName(), bodyBytesBuf.Bytes()))
+// 			case transformScriptFilename:
+// 				ds.Transform.ScriptPath = ao.Path
+// 				tfdata, err := json.Marshal(ds.Transform)
+// 				if err != nil {
+// 					done <- err
+// 					return
+// 				}
+// 				// Add the encoded transform file, decrementing the stray fileTasks from above
+// 				fileTasks++
+// 				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileTransform.String(), tfdata))
+// 			case PackageFileRenderedViz.String():
+// 				ds.Viz.RenderedPath = ao.Path
+// 				vsFile := qfs.NewMemfileReader(vizScriptFilename, ds.Viz.ScriptFile())
+// 				defer vsFile.Close()
+// 				fileTasks++
+// 				adder.AddFile(ctx, vsFile)
+// 			case vizScriptFilename:
+// 				ds.Viz.ScriptPath = ao.Path
+// 				vizdata, err := json.Marshal(ds.Viz)
+// 				if err != nil {
+// 					done <- err
+// 					return
+// 				}
+// 				// Add the encoded transform file, decrementing the stray fileTasks from above
+// 				fileTasks++
+// 				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
+// 			case PackageFileRenderedReadme.String():
+// 				ds.Readme.RenderedPath = ao.Path
+// 				vsFile := qfs.NewMemfileReader(readmeScriptFilename, ds.Readme.ScriptFile())
+// 				defer vsFile.Close()
+// 				fileTasks++
+// 				adder.AddFile(ctx, vsFile)
+// 			case readmeScriptFilename:
+// 				ds.Readme.ScriptPath = ao.Path
+// 				readmeData, err := json.Marshal(ds.Readme)
+// 				if err != nil {
+// 					done <- err
+// 					return
+// 				}
+// 				// Add the encoded transform file, decrementing the stray fileTasks from above
+// 				fileTasks++
+// 				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileReadme.String(), readmeData))
+// 			}
+
+// 			fileTasks--
+// 			if fileTasks == 0 {
+// 				if !addedDataset {
+// 					ds.DropTransientValues()
+// 					dsdata, err := json.Marshal(ds)
+// 					if err != nil {
+// 						done <- err
+// 						return
+// 					}
+
+// 					adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileDataset.String(), dsdata))
+// 				}
+// 				//
+// 				if err := adder.Close(); err != nil {
+// 					done <- err
+// 					return
+// 				}
+// 			}
+// 		}
+// 		done <- nil
+// 	}()
+
+// 	err = <-done
+// 	if err != nil {
+// 		return path, err
+// 	}
+// 	// TODO (b5): currently we're loading to keep the ds pointer hydrated post-write
+// 	// we should remove that assumption, allowing callers to skip this load step, which may
+// 	// be unnecessary
+// 	var loaded *dataset.Dataset
+// 	loaded, err = LoadDataset(ctx, store, path)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	loaded.Name = name
+// 	*ds = *loaded
+// 	return path, nil
+// }
+
+// PrepareIPFSFile creates a graph for writing to IPFS.
+// modifies the passed-in dataset
+// TODO (b5) - this should be refactored to work with the component API
+func PrepareIPFSFile(ds *dataset.Dataset) (qfs.File, error) {
+	ds.DropTransientValues()
+	prepped := map[string]interface{}{}
+
+	if ds.Commit != nil {
+		prepped["commit"] = map[string]interface{}{
+			"title":   ds.Commit.Title,
+			"message": ds.Commit.Message,
+		}
+	}
+	if ds.Meta != nil {
+		prepped["meta"] = value.NewResolvedLink("meta", ds.Meta)
+	}
+	if ds.Transform != nil {
+		// TODO (b5) - components should have a Value function that performs this
+		prepped["transform"] = map[string]interface{}{
+			"syntax": ds.Transform.Syntax,
+			"script": ds.Transform.ScriptFile(),
+		}
+	}
+	if ds.Readme != nil {
+		prepped["readme"] = map[string]interface{}{
+			"format": ds.Readme.Format,
+			"script": ds.Readme.ScriptFile(),
+		}
+	}
+	if ds.Structure != nil {
+		prepped["structure"] = map[string]interface{}{
+			"formatConfig": ds.Structure.FormatConfig,
+			"schema":       value.NewResolvedLink("schema", ds.Structure.Schema),
+		}
+	}
+	if ds.BodyFile() != nil {
+		prepped["body"] = ds.BodyFile()
+	}
+
+	return qfs.NewMemfile("dataset", prepped), nil
 }
