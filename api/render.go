@@ -52,5 +52,5 @@ func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.Write([]byte(text))
+	apiutil.WriteResponse(w, text)
 }

@@ -54,10 +54,7 @@ func TestRenderReadmeHandler(t *testing.T) {
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
-	expectBody := `<h1>hi</h1>
-
-<p>test</p>
-`
+	expectBody := `{"data":"\u003ch1\u003ehi\u003c/h1\u003e\n\n\u003cp\u003etest\u003c/p\u003e\n","meta":{"code":200}}`
 	if expectBody != actualBody {
 		t.Errorf("expected body {%s}, got {%s}", expectBody, actualBody)
 	}
