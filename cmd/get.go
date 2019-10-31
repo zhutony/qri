@@ -54,7 +54,8 @@ dataset and its fields.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml]")
+	cmd.Flags().StringVar(&o.Format, "format", "", "set output format [json, yaml]")
+	cmd.Flags().StringVarP(&o.Selector, "filter", "f", "", "filter dataset output")
 	cmd.Flags().BoolVar(&o.Pretty, "pretty", false, "whether to print output with indentation, only for json format")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", -1, "for body, limit how many entries to get per page")
 	cmd.Flags().IntVar(&o.Page, "page", -1, "for body, page at which to get entries")

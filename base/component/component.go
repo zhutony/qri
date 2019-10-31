@@ -18,6 +18,11 @@ type Component interface {
 	DropDerivedValues()
 	LoadAndFill(*dataset.Dataset) error
 	StructuredData() (interface{}, error)
+
+	// // Fetch the runtime qri value of this component, if any exists
+	// Value() (v value.Value, ok bool)
+	// // Write the component value to a dataset
+	// Fill(ds *dataset.Dataset) error
 }
 
 // NumberPossibleComponents is the number of subcomponents plus "dataset".
