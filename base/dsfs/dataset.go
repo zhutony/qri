@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -227,7 +228,6 @@ func DerefDatasetCommit(ctx context.Context, store cafs.Filestore, ds *dataset.D
 // Pin the dataset if the underlying store supports the pinning interface
 // All streaming files (Body, Transform Script, Viz Script) Must be Resolved before calling if data their data is to be saved
 func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, pin, force, shouldRender bool) (path string, err error) {
-
 	if pk == nil {
 		err = fmt.Errorf("private key is required to create a dataset")
 		return
@@ -606,38 +606,46 @@ func PrepareIPFSFile(ds *dataset.Dataset) (qfs.File, error) {
 	prepped := map[string]interface{}{}
 
 	if ds.Commit != nil {
-		prepped["commit"] = map[string]interface{}{
-			"title":   ds.Commit.Title,
-			"message": ds.Commit.Message,
-		}
+		prepped["commit"] = mapValue(ds.Commit)
 	}
 	if ds.Meta != nil {
-		prepped["meta"] = value.NewResolvedLink("meta", ds.Meta)
+		prepped["meta"] = value.NewResolvedLink("meta", mapValue(ds.Meta))
 	}
 	if ds.Transform != nil {
 		// TODO (b5) - components should have a Value function that performs this
-		prepped["transform"] = map[string]interface{}{
-			"syntax": ds.Transform.Syntax,
-			"script": ds.Transform.ScriptFile(),
-		}
+		tf := mapValue(ds.Transform)
+		tf["script"] = ds.Transform.ScriptFile()
+		prepped["transform"] = tf
 	}
 	if ds.Readme != nil {
-		prepped["readme"] = map[string]interface{}{
-			"format": ds.Readme.Format,
-			"script": ds.Readme.ScriptFile(),
-		}
+		rm := mapValue(ds.Readme)
+		rm["script"] = ds.Readme.ScriptFile()
+		prepped["readme"] = rm
 	}
 	if ds.Structure != nil {
-		prepped["structure"] = map[string]interface{}{
-			"formatConfig": ds.Structure.FormatConfig,
-			"schema":       value.NewResolvedLink("schema", ds.Structure.Schema),
+		st := mapValue(ds.Structure)
+		if ds.Structure.Schema != nil {
+			st["schema"] = value.NewResolvedLink("schema", ds.Structure.Schema)
 		}
+		prepped["structure"] = st
 	}
 	if ds.BodyFile() != nil {
 		prepped["body"] = ds.BodyFile()
 	}
 
 	return qfs.NewMemfile("dataset", prepped), nil
+}
+
+// mapValue converts a commit struct to a map value
+func mapValue(val interface{}) map[string]interface{} {
+	m := map[string]interface{}{}
+	data, err := json.Marshal(val)
+	if err != nil {
+		return m
+	}
+
+	_ = json.Unmarshal(data, &m)
+	return m
 }
 
 // toStringMap checks for map[interface{}]interface{}, converts keys to strings

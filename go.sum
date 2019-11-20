@@ -730,6 +730,7 @@ github.com/qri-io/deepdiff v0.1.1-0.20191118194347-ac31500b9917 h1:KR/lVzcP9Saxo
 github.com/qri-io/deepdiff v0.1.1-0.20191118194347-ac31500b9917/go.mod h1:/O1HQVAlm3yhgQvNwyzsKaECfM2vVSx6KxttgXQQGFw=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
 github.com/qri-io/doggos v0.1.0/go.mod h1:FmyznoDwt2mhskYpnasyoEsxNr490qVbX9Sf6NP2Crg=
+github.com/qri-io/dsdiff v0.1.1/go.mod h1:dbrWaooqfVewLAZIJMbqIljg9uEH3RC5f32jOKruYgE=
 github.com/qri-io/ioes v0.1.0 h1:MCkiJcBhxFS9DKrvtrUQ+o1IQtZFKYioMt12XauqUT0=
 github.com/qri-io/ioes v0.1.0/go.mod h1:M2WXAvGn7tb/CeAE2YwYWOMFDeqjGtu96WKNlzSz76c=
 github.com/qri-io/iso8601 v0.1.0 h1:048APpSFuL7O5fexJl6tGGAfGQbB2bI/9hdkP75kdto=
@@ -801,6 +802,7 @@ github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpP
 github.com/texttheater/golang-levenshtein v0.0.0-20180516184445-d188e65d659e/go.mod h1:XDKHRm5ThF8YJjx001LtgelzsoaEcvnA7lVWz9EeX3g=
 github.com/theckman/go-flock v0.7.1 h1:YdJyIjDuQdEU7voZ9YaeXSO4OnrxdI+WejPUwyZ/Txs=
 github.com/theckman/go-flock v0.7.1/go.mod h1:kjuth3y9VJ2aNlkNEO99G/8lp9fMIKaGyBmh84IBheM=
+github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/ugorji/go v1.1.5-pre/go.mod h1:FwP/aQVg39TXzItUBMwnWp9T9gPQnXw4Poh4/oBQZ/0=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
 github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVMw=

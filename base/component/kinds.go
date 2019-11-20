@@ -653,7 +653,7 @@ func (rc *ReadmeComponent) StructuredData() (interface{}, error) {
 // TransformComponent represents a transform component
 type TransformComponent struct {
 	BaseComponent
-	Resolver qfs.PathResolver
+	Resolver qfs.Filesystem
 	Value    *dataset.Transform
 }
 

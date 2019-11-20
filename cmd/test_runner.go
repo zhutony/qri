@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/qri-io/ioes"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_filestore "github.com/qri-io/qfs/ipfsfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
