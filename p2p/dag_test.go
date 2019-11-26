@@ -43,7 +43,9 @@ func TestMissingManifest(t *testing.T) {
 	// ipts node isn't currently creating a localNodeGetter, causing this test
 	// to hang forever trying to fetch on a one-node network
 	tr, cleanup := newTestRunner(t)
-	defer cleanup()
+	defer func(){
+		cleanup()
+	}()
 
 	node := tr.IPFSBackedQriNode(t, "dag_tests_peer")
 	writeWorldBankPopulation(tr.Ctx, t, node.Repo)
