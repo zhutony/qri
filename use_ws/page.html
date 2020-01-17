@@ -1,0 +1,100 @@
+<html>
+<head>
+<style>
+textarea {
+  width: 700px;
+  height: 900px;
+}
+</style>
+<script>
+function out(text) {
+  let t = document.getElementById('output');
+  t.textContent = t.textContent + text + '\n';
+}
+
+function start_connection() {
+
+  let socket = new WebSocket("ws://localhost:2506", "qri-websocket");
+
+  socket.onopen = function(e) {
+    out("[open] Connection established");
+    out("Sending to server \"hi\"");
+    socket.send("hi");
+  };
+
+  socket.onmessage = function(event) {
+    out(`[message] Data received from server: ${event.data}`);
+  };
+
+  socket.onclose = function(event) {
+    if (event.wasClean) {
+      out(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+    } else {
+      // e.g. server process killed or network down
+      // event.code is usually 1006 in this case
+      out('[close] Connection died');
+    }
+  };
+
+  socket.onerror = function(error) {
+    out(`[error] ${error.message}`);
+  };
+
+};
+
+function begin() {
+  let c = document.getElementById('connect');
+  c.addEventListener('click', function() {
+    start_connection();
+  }, false);
+}
+
+window.onload = begin;
+
+</script>
+</head>
+<body>
+  <h1>Websocket Demo</h1>
+
+<h3>How to use</h3>
+<p>
+Run <tt>qri connect</tt>
+</p>
+<p>
+Qri will watch paths that are currently checked out at startup. TODO(dlong): Add and remove watch paths as new datasets get checked out or removed.
+</p>
+<p>
+Connect a Websocket to localhost:2506 (no configuration option yet). The protocol to connect with is "qri-websocket". (button below will connect this page's javascript)
+</p>
+<p>
+When a file is modified in a directory that is watched by qri, the websocket will send a message to the connected listener.
+</p>
+<p>
+(Read source for javascript implementation)
+</p>
+
+<h3>Example message:</h3>
+<div class="msg-container">
+<code>{"Type":"create","Source":"/Users/me/path/to/dataset/body.json","Destination":"","Time":"2020-01-17T15:45:32.916843-05:00"}
+</code>
+</div>
+
+<p>
+All event types are in <tt>qri/watchfs/event.go</tt>.
+</p>
+
+<p></p><p></p>
+
+<h3>Click to connect to Websocket</h3>
+<input type="button" id="connect" value="Connect" />
+
+<p>
+Then modify a file in one of your working directories
+</p>
+
+<h3>output:</h3>
+<textarea id="output">
+</textarea>
+
+</body>
+</html>
