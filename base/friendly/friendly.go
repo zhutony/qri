@@ -23,12 +23,18 @@ type ComponentChanges struct {
 // DiffDescriptions creates a friendly message from diff operations. If there's no differences
 // found, return empty strings.
 func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepdiff.Stats, assumeBodyChanged bool) (string, string) {
+	xx := 0
+	fmt.Printf("DiffDescriptions %d\n", xx)
+	xx = xx + 1
 	if len(headDeltas) == 0 && len(bodyDeltas) == 0 {
 		return "", ""
 	}
 
 	headDeltas = preprocess(headDeltas, "")
 	bodyDeltas = preprocess(bodyDeltas, "")
+
+	fmt.Printf("DiffDescriptions %d\n", xx)
+	xx = xx + 1
 
 	perComponentChanges := buildComponentChanges(headDeltas, bodyDeltas, bodyStats, assumeBodyChanged)
 
@@ -40,7 +46,9 @@ func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepd
 	// Iterate over certain components that we want to check for changes to.
 	componentsToCheck := []string{"meta", "structure", "readme", "viz", "transform", "body"}
 	for _, compName := range componentsToCheck {
+		fmt.Printf("DiffDescriptions comp:%s\n", compName)
 		if changes, ok := perComponentChanges[compName]; ok {
+			fmt.Printf("DiffDescriptions VALID\n")
 			changedComponents = append(changedComponents, compName)
 
 			// Decide heuristically which type of message to use for this component
@@ -51,7 +59,9 @@ func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepd
 				msg = fmt.Sprintf("%s %s", compName, changes.EntireMessage)
 				shortTitle = msg
 			} else if compName == "body" {
+				fmt.Printf("DiffDescriptions BODY\n")
 				if changes.Rows == nil {
+					fmt.Printf("DiffDescriptions BODY rows nil\n")
 					// Body works specially. If a significant number of changes have been made,
 					// just report the percentage of the body that has changed.
 					// Take the max of left and right to calculate the percentage change.
@@ -64,6 +74,7 @@ func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepd
 					msg = fmt.Sprintf("%s:\n\t%s", compName, action)
 					shortTitle = fmt.Sprintf("%s %s", compName, action)
 				} else {
+					fmt.Printf("Rows not nil\n")
 					// If only a small number of changes were made, then describe each of them.
 					msg = fmt.Sprintf("%s:", compName)
 					for _, r := range changes.Rows {
@@ -100,6 +111,9 @@ func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepd
 		}
 	}
 
+	fmt.Printf("DiffDescriptions %d\n", xx)
+	xx = xx + 1
+
 	// Check if there were 2 or more components that got changed. If so, the short title will
 	// just list the names of those components, with no additional detail.
 	if len(changedComponents) == 2 {
@@ -116,6 +130,9 @@ func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepd
 		}
 		shortTitle = text
 	}
+
+	fmt.Printf("DiffDescriptions %d\n", xx)
+	xx = xx + 1
 
 	return shortTitle, longMessage
 }
@@ -146,12 +163,15 @@ func preprocess(deltas deepdiff.Deltas, path string) deepdiff.Deltas {
 
 func buildComponentChanges(headDeltas, bodyDeltas deepdiff.Deltas, bodyStats *deepdiff.Stats, assumeBodyChanged bool) map[string]*ComponentChanges {
 	perComponentChanges := make(map[string]*ComponentChanges)
+	fmt.Printf("buildComponentChanges HD:%d, BD:%d\n", len(headDeltas), len(bodyDeltas))
 	for _, d := range headDeltas {
 		compName := d.Path.String()
 		if d.Type != deepdiff.DTContext {
+			fmt.Printf("buildComponentChanges type:%s\n", d.Type)
 			// Entire component changed
 			if d.Type == deepdiff.DTInsert || d.Type == deepdiff.DTDelete || d.Type == dtReplace {
 				if _, ok := perComponentChanges[compName]; !ok {
+					fmt.Printf("buildComponentChanges initCompChanges\n")
 					perComponentChanges[compName] = &ComponentChanges{}
 				}
 				changes, _ := perComponentChanges[compName]
@@ -169,11 +189,14 @@ func buildComponentChanges(headDeltas, bodyDeltas deepdiff.Deltas, bodyStats *de
 		}
 	}
 	if assumeBodyChanged {
+		fmt.Printf("buildComponentChanges assumeBodyChanged\n")
 		perComponentChanges["body"] = &ComponentChanges{EntireMessage: "changed"}
 	} else if len(bodyDeltas) > 0 && bodyStats != nil {
+		fmt.Printf("buildComponentChanges assumeBody NOT Changed\n")
 		bodyChanges := &ComponentChanges{}
 		buildBodyChanges(bodyChanges, "", bodyDeltas)
 		if bodyChanges.Num > 0 {
+			fmt.Printf("buildComponentChanges has body changes\n")
 			perComponentChanges["body"] = bodyChanges
 		}
 	}
@@ -194,7 +217,9 @@ func buildChanges(changes *ComponentChanges, parentPath string, deltas deepdiff.
 }
 
 func buildBodyChanges(changes *ComponentChanges, parentPath string, deltas deepdiff.Deltas) {
+	fmt.Printf("buildBodyChanges parentPath: '%s'\n", parentPath)
 	for _, d := range deltas {
+		fmt.Printf("buildBodyChanges delta: '%s'\n", d.Type)
 		if d.Type == deepdiff.DTDelete || d.Type == deepdiff.DTInsert || d.Type == deepdiff.DTUpdate || d.Type == dtReplace {
 			changes.Num++
 			if valArray, ok := d.Value.([]interface{}); ok {
