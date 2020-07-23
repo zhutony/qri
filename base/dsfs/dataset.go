@@ -37,7 +37,7 @@ var (
 	// prevents waiting for a slow network response, at the expense of leaving
 	// files unresolved.
 	// TODO (b5) - allow -1 duration as a sentinel value for no timeout
-	OpenFileTimeoutDuration = time.Millisecond * 700
+	OpenFileTimeoutDuration = time.Millisecond * 7000
 )
 
 // If a user has a dataset larger than the above limit, then instead of diffing we compare the
